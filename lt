@@ -1,0 +1,46 @@
+#!/usr/local/bin/lua
+
+local count = 0
+local errors = {} -- List of names and messages of all failing tests
+local pending = 0
+
+function test(name, fn)
+   count = count + 1
+   if fn == "pending" or fn == nil then -- A pending test
+	  pending = pending + 1
+	  io.write("*")
+   elseif type(fn) == "function" then -- A real test
+	  local status, err = pcall(fn) -- Run the function
+	  if status then
+		 io.write(".")
+	  else
+		 table.insert(errors, { name = name, message = err })
+		 io.write("F")
+	  end
+   else -- Who knows?
+	  io.write("?")
+	  table.insert(errors, { name = name, message = "Expected a function" })
+   end
+end
+
+function lt_test_file(filename)
+   local status, err = pcall(dofile,filename)
+   if not status then -- Syntax error in the file, bail
+	  print(string.format("\nError loading %s:\n\t%s\n", filename, err))
+   end
+end
+
+function lt_summary()
+   io.write(string.format("\n\n%d tests, %d failed, %d pending\n\n", count, #errors, pending))
+
+   for n, err in ipairs(errors) do
+	  print(string.format("%s failed:\n\t%s\n", err.name, err.message))
+   end
+end
+
+-- Run all filenames passed as arguments
+for i, file in ipairs(arg) do
+   lt_test_file(file)
+end
+
+lt_summary()
